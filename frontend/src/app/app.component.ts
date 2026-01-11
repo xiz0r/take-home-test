@@ -1,7 +1,11 @@
-import { Component } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+
+import { LoanService } from './services/loan.service';
+import { Loan } from './models/loan';
 
 @Component({
   selector: 'app-root',
@@ -10,31 +14,28 @@ import { MatButtonModule } from '@angular/material/button';
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss'],
 })
-export class AppComponent {
+export class AppComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
   displayedColumns: string[] = [
-    'loanAmount',
+    'amount',
     'currentBalance',
-    'applicant',
+    'applicantName',
     'status',
   ];
-  loans = [
-    {
-      loanAmount: 25000.00,
-      currentBalance: 18750.00,
-      applicant: 'John Doe',
-      status: 'active',
-    },
-    {
-      loanAmount: 15000.00,
-      currentBalance: 0,
-      applicant: 'Jane Smith',
-      status: 'paid',
-    },
-    {
-      loanAmount: 50000.00,
-      currentBalance: 32500.00,
-      applicant: 'Robert Johnson',
-      status: 'active',
-    },
-  ];
+  loans: Loan[] = [];
+
+  constructor(private readonly loanService: LoanService) {}
+
+  ngOnInit(): void {
+    this.loanService.getLoans()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (loans) => {
+          this.loans = loans;
+        },
+        error: (error) => {
+          console.error('Failed to load loans', error);
+        },
+      });
+  }
 }

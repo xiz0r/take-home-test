@@ -2,6 +2,7 @@
 using Fundo.Application.UseCases.Create;
 using Fundo.Application.UseCases.Find;
 using Fundo.Application.UseCases.Payment;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Fundo.Applications.WebApi.Controllers;
@@ -10,6 +11,7 @@ namespace Fundo.Applications.WebApi.Controllers;
 /// Controller for managing loans and payments
 /// </summary>
 [ApiController]
+[Authorize]
 [Route("loans")]
 [Produces("application/json")]
 public class LoansController : ControllerBase

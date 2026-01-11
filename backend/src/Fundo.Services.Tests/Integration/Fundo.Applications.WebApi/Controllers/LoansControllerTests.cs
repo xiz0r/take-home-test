@@ -1,8 +1,8 @@
-using Microsoft.AspNetCore.Mvc.Testing;
 using System.Net;
 using Fundo.Application.DTOs;
 using Fundo.Services.Tests.Integration.Support;
 using Fundo.Services.Tests.Shared.ObjectMothers;
+using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
 
 namespace Fundo.Services.Tests.Integration;
@@ -24,6 +24,8 @@ public class LoansControllerTests : IClassFixture<TestWebApplicationFactory>
     [Fact]
     public async Task CreateLoan_ShouldReturnCreatedWithLoan()
     {
+        await this.loanApi.AuthenticateAsync(AuthRequestMother.CreateTokenRequest());
+
         var response = await this.loanApi.CreateLoanAsync(
             LoanRequestMother.CreateLoanRequest(500m, "Test Applicant"));
 
@@ -56,6 +58,8 @@ public class LoansControllerTests : IClassFixture<TestWebApplicationFactory>
     [Fact]
     public async Task GetLoanById_WhenMissing_ShouldReturnNotFound()
     {
+        await this.loanApi.AuthenticateAsync(AuthRequestMother.CreateTokenRequest());
+
         var response = await this.loanApi.GetLoanAsync(Guid.NewGuid());
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
@@ -95,6 +99,8 @@ public class LoansControllerTests : IClassFixture<TestWebApplicationFactory>
 
     private async Task<LoanResponse> CreateLoanAsync(decimal amount, string applicantName)
     {
+        await this.loanApi.AuthenticateAsync(AuthRequestMother.CreateTokenRequest());
+
         var response = await this.loanApi.CreateLoanAsync(
             LoanRequestMother.CreateLoanRequest(amount, applicantName));
 

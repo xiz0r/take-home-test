@@ -1,15 +1,42 @@
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Fundo.Application.DTOs;
+using Fundo.Applications.WebApi.DTOs;
 
 namespace Fundo.Services.Tests.Integration.Support;
 
 public class LoanApiClient
 {
     private readonly HttpClient client;
+    private bool isAuthenticated;
 
     public LoanApiClient(HttpClient client)
     {
         this.client = client;
+    }
+
+    public async Task AuthenticateAsync(AuthTokenRequest? request = null)
+    {
+        if (this.isAuthenticated)
+        {
+            return;
+        }
+
+        var response = await this.client.PostAsJsonAsync(
+            "/auth/token",
+            request ?? new AuthTokenRequest("test-user"));
+
+        response.EnsureSuccessStatusCode();
+
+        var token = await response.Content.ReadFromJsonAsync<AuthTokenResponse>();
+        if (token is null || string.IsNullOrWhiteSpace(token.AccessToken))
+        {
+            throw new InvalidOperationException("Failed to acquire auth token.");
+        }
+
+        this.client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", token.AccessToken);
+        this.isAuthenticated = true;
     }
 
     public Task<HttpResponseMessage> CreateLoanAsync(CreateLoanRequest request)

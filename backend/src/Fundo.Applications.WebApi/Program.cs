@@ -1,4 +1,5 @@
-﻿using Fundo.Infrastructure;
+﻿using Fundo.Applications.WebApi.Middleware;
+using Fundo.Infrastructure;
 using Fundo.Infrastructure.Persistence;
 using Microsoft.OpenApi.Models;
 
@@ -47,6 +48,7 @@ var app = builder.Build();
 await DatabaseSeeder.SeedAsync(app.Services);
 
 // Configure the HTTP request pipeline
+app.UseMiddleware<ErrorHandlingMiddleware>();
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();

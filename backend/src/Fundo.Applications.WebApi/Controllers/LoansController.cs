@@ -18,17 +18,20 @@ public class LoansController : ControllerBase
     private readonly LoanFinder loanFinder;
     private readonly LoanListFinder loanListFinder;
     private readonly LoanPaymentMaker loanPaymentMaker;
+    private readonly ILogger<LoansController> logger;
 
     public LoansController(
         LoanCreator loanCreator,
         LoanFinder loanFinder,
         LoanListFinder loanListFinder,
-        LoanPaymentMaker loanPaymentMaker)
+        LoanPaymentMaker loanPaymentMaker,
+        ILogger<LoansController> logger)
     {
         this.loanCreator = loanCreator;
         this.loanFinder = loanFinder;
         this.loanListFinder = loanListFinder;
         this.loanPaymentMaker = loanPaymentMaker;
+        this.logger = logger;
     }
 
     /// <summary>
@@ -46,15 +49,19 @@ public class LoansController : ControllerBase
         [FromBody] CreateLoanRequest request,
         CancellationToken cancellationToken)
     {
-        try
-        {
-            var loan = await this.loanCreator.ExecuteAsync(request, cancellationToken);
-            return CreatedAtAction(nameof(GetLoanById), new { id = loan.Id }, loan);
-        }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(new { error = ex.Message });
-        }
+        this.logger.LogInformation(
+            "Creating loan for {ApplicantName} with amount {Amount}",
+            request.ApplicantName,
+            request.Amount);
+
+        var loan = await this.loanCreator.ExecuteAsync(request, cancellationToken);
+
+        this.logger.LogInformation(
+            "Created loan {LoanId} for {ApplicantName}",
+            loan.Id,
+            loan.ApplicantName);
+
+        return CreatedAtAction(nameof(GetLoanById), new { id = loan.Id }, loan);
     }
 
     /// <summary>
@@ -72,10 +79,14 @@ public class LoansController : ControllerBase
         Guid id,
         CancellationToken cancellationToken)
     {
+        this.logger.LogInformation("Fetching loan {LoanId}", id);
         var loan = await this.loanFinder.ExecuteAsync(id, cancellationToken);
         
         if (loan is null)
+        {
+            this.logger.LogWarning("Loan {LoanId} was not found", id);
             return NotFound(new { error = $"Loan with id {id} not found" });
+        }
 
         return Ok(loan);
     }
@@ -91,6 +102,7 @@ public class LoansController : ControllerBase
     public async Task<ActionResult<IEnumerable<LoanResponse>>> GetAllLoans(
         CancellationToken cancellationToken)
     {
+        this.logger.LogInformation("Fetching all loans");
         var loans = await this.loanListFinder.ExecuteAsync(cancellationToken);
         return Ok(loans);
     }
@@ -114,22 +126,18 @@ public class LoansController : ControllerBase
         [FromBody] MakePaymentRequest request,
         CancellationToken cancellationToken)
     {
-        try
-        {
-            var loan = await this.loanPaymentMaker.ExecuteAsync(id, request, cancellationToken);
-            return Ok(loan);
-        }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(new { error = ex.Message });
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { error = ex.Message });
-        }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(new { error = ex.Message });
-        }
+        this.logger.LogInformation(
+            "Making payment for loan {LoanId} with amount {Amount}",
+            id,
+            request.Amount);
+
+        var loan = await this.loanPaymentMaker.ExecuteAsync(id, request, cancellationToken);
+
+        this.logger.LogInformation(
+            "Payment applied for loan {LoanId}. Current balance {CurrentBalance}",
+            loan.Id,
+            loan.CurrentBalance);
+
+        return Ok(loan);
     }
 }

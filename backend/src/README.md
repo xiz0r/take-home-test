@@ -18,7 +18,7 @@ dotnet run
 
 The following endpoint should return **200 OK**:  
 ```http
-GET -> https://localhost:5001/loan
+GET -> https://localhost:5000/loan
 ```
 
 ## Notes  

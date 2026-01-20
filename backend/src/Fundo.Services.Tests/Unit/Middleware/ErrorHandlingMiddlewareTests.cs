@@ -11,51 +11,59 @@ namespace Fundo.Services.Tests.Unit.Middleware;
 
 public class ErrorHandlingMiddlewareTests
 {
-    [Fact]
-    public async Task InvokeAsync_WhenArgumentException_ReturnsBadRequest()
+    [Theory]
+    [MemberData(nameof(ExceptionTestCases))]
+    public async Task InvokeAsync_WhenExceptionThrown_ReturnsExpectedStatusAndMessage(
+        Exception exception,
+        HttpStatusCode expectedStatusCode,
+        string expectedError,
+        string traceId)
     {
-        var context = CreateHttpContext("trace-arg");
-        var middleware = CreateMiddleware(_ => throw new ArgumentException("invalid data"));
+        // Arrange
+        var context = CreateHttpContext(traceId);
+        var middleware = CreateMiddleware(_ => throw exception);
 
+        // Act
         await middleware.InvokeAsync(context);
 
-        context.Response.StatusCode.Should().Be((int)HttpStatusCode.BadRequest);
+        // Assert
+        context.Response.StatusCode.Should().Be((int)expectedStatusCode);
+
         var payload = await ReadPayloadAsync(context);
-        payload.Error.Should().Be("invalid data");
-        payload.TraceId.Should().Be("trace-arg");
+        payload.Error.Should().Be(expectedError);
+        payload.TraceId.Should().Be(traceId);
     }
 
-    [Fact]
-    public async Task InvokeAsync_WhenKeyNotFoundException_ReturnsNotFound()
-    {
-        var context = CreateHttpContext("trace-missing");
-        var middleware = CreateMiddleware(_ => throw new KeyNotFoundException("missing"));
-
-        await middleware.InvokeAsync(context);
-
-        context.Response.StatusCode.Should().Be((int)HttpStatusCode.NotFound);
-        var payload = await ReadPayloadAsync(context);
-        payload.Error.Should().Be("missing");
-        payload.TraceId.Should().Be("trace-missing");
-    }
-
-    [Fact]
-    public async Task InvokeAsync_WhenUnexpectedException_ReturnsInternalServerError()
-    {
-        var context = CreateHttpContext("trace-500");
-        var middleware = CreateMiddleware(_ => throw new InvalidDataException("boom"));
-
-        await middleware.InvokeAsync(context);
-
-        context.Response.StatusCode.Should().Be((int)HttpStatusCode.InternalServerError);
-        var payload = await ReadPayloadAsync(context);
-        payload.Error.Should().Be("An unexpected error occurred.");
-        payload.TraceId.Should().Be("trace-500");
-    }
+    public static IEnumerable<object[]> ExceptionTestCases =>
+        new List<object[]>
+        {
+            new object[]
+            {
+                new ArgumentException("invalid data"),
+                HttpStatusCode.BadRequest,
+                "invalid data",
+                "trace-arg"
+            },
+            new object[]
+            {
+                new KeyNotFoundException("missing"),
+                HttpStatusCode.NotFound,
+                "missing",
+                "trace-missing"
+            },
+            new object[]
+            {
+                new InvalidDataException("boom"),
+                HttpStatusCode.InternalServerError,
+                "An unexpected error occurred.",
+                "trace-500"
+            }
+        };
 
     [Fact]
     public async Task InvokeAsync_WhenResponseAlreadyStarted_Rethrows()
     {
+        // Arrange
         var context = CreateStartedHttpContext("trace-started");
         var middleware = CreateMiddleware(async httpContext =>
         {
@@ -63,8 +71,10 @@ public class ErrorHandlingMiddlewareTests
             throw new InvalidOperationException("started");
         });
 
+        // Act
         var action = () => middleware.InvokeAsync(context);
 
+        // Assert
         await action.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("started");
     }

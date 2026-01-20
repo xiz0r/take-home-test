@@ -11,6 +11,15 @@ public static class LoanMother
         return Loan.Create(amount, applicantName);
     }
 
+    public static Loan PaidLoan(
+        decimal amount = 500m,
+        string applicantName = "Test Applicant")
+    {
+        var loan = Loan.Create(amount, applicantName);
+        loan.MakePayment(amount);
+        return loan;
+    }
+
     public static Loan LoanWithBalance(
         decimal amount,
         decimal currentBalance,

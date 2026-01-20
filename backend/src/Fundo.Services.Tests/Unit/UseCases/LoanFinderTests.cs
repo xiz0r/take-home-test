@@ -10,34 +10,43 @@ namespace Fundo.Services.Tests.Unit.UseCases;
 
 public class LoanFinderTests
 {
+    private readonly Mock<ILoanRepository> _loanRepository;
+    private readonly LoanFinder _sut;
+
+    public LoanFinderTests()
+    {
+        _loanRepository = new Mock<ILoanRepository>();
+        _sut = new LoanFinder(_loanRepository.Object);
+    }
+
     [Fact]
     public async Task ExecuteAsync_WhenLoanIsMissing_ReturnsNull()
     {
-        var loanRepository = new Mock<ILoanRepository>();
-        loanRepository
-            .Setup(repo => repo.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+        // Arrange
+        _loanRepository
+            .Setup(x => x.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((Loan?)null);
 
-        var useCase = new LoanFinder(loanRepository.Object);
+        // Act
+        var response = await _sut.ExecuteAsync(Guid.NewGuid(), CancellationToken.None);
 
-        var response = await useCase.ExecuteAsync(Guid.NewGuid(), CancellationToken.None);
-
+        // Assert
         response.Should().BeNull();
     }
 
     [Fact]
     public async Task ExecuteAsync_WhenLoanExists_ReturnsMappedResponse()
     {
+        // Arrange
         var loan = LoanMother.ActiveLoan(500m, "Carlos");
-        var loanRepository = new Mock<ILoanRepository>();
-        loanRepository
-            .Setup(repo => repo.GetByIdAsync(loan.Id, It.IsAny<CancellationToken>()))
+        _loanRepository
+            .Setup(x => x.GetByIdAsync(loan.Id, It.IsAny<CancellationToken>()))
             .ReturnsAsync(loan);
 
-        var useCase = new LoanFinder(loanRepository.Object);
+        // Act
+        var response = await _sut.ExecuteAsync(loan.Id, CancellationToken.None);
 
-        var response = await useCase.ExecuteAsync(loan.Id, CancellationToken.None);
-
+        // Assert
         response.Should().NotBeNull();
         response!.Id.Should().Be(loan.Id);
         response.Amount.Should().Be(loan.Amount);

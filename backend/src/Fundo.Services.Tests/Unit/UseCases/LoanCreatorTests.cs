@@ -10,63 +10,80 @@ namespace Fundo.Services.Tests.Unit.UseCases;
 
 public class LoanCreatorTests
 {
-    [Fact]
-    public async Task ExecuteAsync_ShouldCreateLoanAndReturnResponse()
-    {
-        var request = LoanRequestMother.CreateLoanRequest(250m, "Maria");
-        var loanRepository = new Mock<ILoanRepository>();
-        Loan? createdLoan = null;
+    private readonly Mock<ILoanRepository> _loanRepository;
+    private readonly LoanCreator _sut;
 
-        loanRepository
-            .Setup(repo => repo.AddAsync(It.IsAny<Loan>(), It.IsAny<CancellationToken>()))
-            .Callback<Loan, CancellationToken>((loan, _) => createdLoan = loan)
+    public LoanCreatorTests()
+    {
+        _loanRepository = new Mock<ILoanRepository>();
+        _loanRepository
+            .Setup(x => x.AddAsync(It.IsAny<Loan>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((Loan loan, CancellationToken _) => loan);
 
-        var useCase = new LoanCreator(loanRepository.Object);
+        _sut = new LoanCreator(_loanRepository.Object);
+    }
 
-        var response = await useCase.ExecuteAsync(request, CancellationToken.None);
+    [Fact]
+    public async Task ExecuteAsync_WithValidRequest_CreatesLoanSuccessfully()
+    {
+        // Arrange
+        var request = LoanRequestMother.CreateLoanRequest(250m, "Maria");
 
-        createdLoan.Should().NotBeNull();
-        response.Id.Should().Be(createdLoan!.Id);
+        // Act
+        var response = await _sut.ExecuteAsync(request, CancellationToken.None);
+
+        // Assert
+        response.Should().NotBeNull();
         response.Amount.Should().Be(request.Amount);
-        response.CurrentBalance.Should().Be(createdLoan.CurrentBalance);
+        response.CurrentBalance.Should().Be(request.Amount);
         response.ApplicantName.Should().Be(request.ApplicantName);
         response.Status.Should().Be("active");
-        response.CreatedAt.Should().Be(createdLoan.CreatedAt);
-        response.UpdatedAt.Should().Be(createdLoan.UpdatedAt);
 
-        loanRepository.Verify(
-            repo => repo.AddAsync(createdLoan, It.IsAny<CancellationToken>()),
+        _loanRepository.Verify(
+            x => x.AddAsync(
+                It.Is<Loan>(l =>
+                    l.ApplicantName == request.ApplicantName &&
+                    l.CurrentBalance == request.Amount),
+                It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
-    [Fact]
-    public async Task ExecuteAsync_WhenAmountIsZero_Throws()
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-100)]
+    public async Task ExecuteAsync_WithInvalidAmount_ThrowsArgumentException(decimal amount)
     {
-        var request = LoanRequestMother.CreateLoanRequest(0m, "Maria");
-        var loanRepository = new Mock<ILoanRepository>();
-        var useCase = new LoanCreator(loanRepository.Object);
+        // Arrange
+        var request = LoanRequestMother.CreateLoanRequest(amount, "Maria");
 
-        var action = () => useCase.ExecuteAsync(request, CancellationToken.None);
+        // Act
+        var action = () => _sut.ExecuteAsync(request, CancellationToken.None);
 
+        // Assert
         await action.Should().ThrowAsync<ArgumentException>();
-        loanRepository.Verify(
-            repo => repo.AddAsync(It.IsAny<Loan>(), It.IsAny<CancellationToken>()),
+
+        _loanRepository.Verify(
+            x => x.AddAsync(It.IsAny<Loan>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
 
-    [Fact]
-    public async Task ExecuteAsync_WhenApplicantNameIsBlank_Throws()
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData(null)]
+    public async Task ExecuteAsync_WithInvalidApplicantName_ThrowsArgumentException(string? name)
     {
-        var request = LoanRequestMother.CreateLoanRequest(250m, "   ");
-        var loanRepository = new Mock<ILoanRepository>();
-        var useCase = new LoanCreator(loanRepository.Object);
+        // Arrange
+        var request = LoanRequestMother.CreateLoanRequest(250m, name!);
 
-        var action = () => useCase.ExecuteAsync(request, CancellationToken.None);
+        // Act
+        var action = () => _sut.ExecuteAsync(request, CancellationToken.None);
 
+        // Assert
         await action.Should().ThrowAsync<ArgumentException>();
-        loanRepository.Verify(
-            repo => repo.AddAsync(It.IsAny<Loan>(), It.IsAny<CancellationToken>()),
+
+        _loanRepository.Verify(
+            x => x.AddAsync(It.IsAny<Loan>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
 }

@@ -17,8 +17,6 @@ public static class DependencyInjection
             configureDb(options));
 
         services.AddScoped<ILoanRepository, LoanRepository>();
-        
-        services.AddApplication();
 
         return services;
     }

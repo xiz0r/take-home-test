@@ -6,6 +6,7 @@ using Fundo.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.OpenApi.Models;
 using Microsoft.IdentityModel.Tokens;
+using Fundo.Application;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,6 +17,7 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 if (!builder.Environment.IsEnvironment("Test"))
 {
     builder.Services.AddInfrastructure(connectionString);
+    builder.Services.AddApplication();
 }
 builder.Services.AddControllers();
 
@@ -107,7 +109,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI(options =>
     {
         options.SwaggerEndpoint("/swagger/v1/swagger.json", "Fundo Loans API v1");
-        options.RoutePrefix = string.Empty; 
+        options.RoutePrefix = string.Empty;
     });
 }
 

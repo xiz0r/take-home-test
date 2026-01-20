@@ -12,7 +12,7 @@ public class Loan
     public DateTime CreatedAt { get; private set; }
     public DateTime? UpdatedAt { get; private set; }
 
-    private Loan() { } // EF Core constructor
+    private Loan() { }
 
     public static Loan Create(decimal amount, string applicantName)
     {

@@ -2,6 +2,7 @@
 using Fundo.Application.UseCases.Create;
 using Fundo.Application.UseCases.Find;
 using Fundo.Application.UseCases.Payment;
+using Fundo.Application.UseCases.Search;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -21,18 +22,21 @@ public class LoansController : ControllerBase
     private readonly LoanListFinder loanListFinder;
     private readonly LoanPaymentMaker loanPaymentMaker;
     private readonly ILogger<LoansController> logger;
+    private readonly LoanByRangeAmountSearcher loanByRangeAmountSearcher;
 
     public LoansController(
         LoanCreator loanCreator,
         LoanFinder loanFinder,
         LoanListFinder loanListFinder,
         LoanPaymentMaker loanPaymentMaker,
+        LoanByRangeAmountSearcher loanByRangeAmountSearcher,
         ILogger<LoansController> logger)
     {
         this.loanCreator = loanCreator;
         this.loanFinder = loanFinder;
         this.loanListFinder = loanListFinder;
         this.loanPaymentMaker = loanPaymentMaker;
+        this.loanByRangeAmountSearcher = loanByRangeAmountSearcher;
         this.logger = logger;
     }
 
@@ -83,7 +87,7 @@ public class LoansController : ControllerBase
     {
         this.logger.LogInformation("Fetching loan {LoanId}", id);
         var loan = await this.loanFinder.ExecuteAsync(id, cancellationToken);
-        
+
         if (loan is null)
         {
             this.logger.LogWarning("Loan {LoanId} was not found", id);
@@ -91,6 +95,19 @@ public class LoansController : ControllerBase
         }
 
         return Ok(loan);
+    }
+
+    [HttpGet("search-by-amount-range")]
+    [ProducesResponseType(typeof(IEnumerable<LoanResponse>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<LoanResponse>>> GetLoansByAmountRange(
+        [FromQuery] decimal minAmount,
+        [FromQuery] decimal maxAmount,
+        CancellationToken cancellationToken)
+    {
+        this.logger.LogInformation("Fetching loans with amount range {MinAmount} - {MaxAmount}", minAmount, maxAmount);
+        var request = new SearchByAmountRangeRequest(minAmount, maxAmount);
+        var loans = await this.loanByRangeAmountSearcher.ExecuteAsync(request, cancellationToken);
+        return Ok(loans);
     }
 
     /// <summary>

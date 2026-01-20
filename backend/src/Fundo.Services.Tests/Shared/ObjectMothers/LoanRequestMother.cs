@@ -15,4 +15,11 @@ public static class LoanRequestMother
     {
         return new MakePaymentRequest(amount);
     }
+
+    public static SearchByAmountRangeRequest CreateSearchByAmountRangeRequest(
+        decimal minAmount = 100m,
+        decimal maxAmount = 1000m)
+    {
+        return new SearchByAmountRangeRequest(minAmount, maxAmount);
+    }
 }

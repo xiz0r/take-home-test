@@ -8,4 +8,5 @@ public interface ILoanRepository
     Task<IEnumerable<Loan>> GetAllAsync(CancellationToken cancellationToken = default);
     Task<Loan> AddAsync(Loan loan, CancellationToken cancellationToken = default);
     Task UpdateAsync(Loan loan, CancellationToken cancellationToken = default);
+    Task<IEnumerable<Loan>> GetByAmountRangeAsync(decimal minAmount, decimal maxAmount, CancellationToken cancellationToken = default);
 }

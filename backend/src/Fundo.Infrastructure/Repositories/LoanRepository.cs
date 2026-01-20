@@ -36,4 +36,13 @@ public class LoanRepository : ILoanRepository
         _context.Loans.Update(loan);
         await _context.SaveChangesAsync(cancellationToken);
     }
+
+    public async Task<IEnumerable<Loan>> GetByAmountRangeAsync(decimal minAmount, decimal maxAmount, CancellationToken cancellationToken = default)
+    {
+        var loans = await _context.Loans
+            .Where(loan => loan.Amount >= minAmount && loan.Amount <= maxAmount)
+            .ToListAsync(cancellationToken);
+
+        return loans;
+    }
 }

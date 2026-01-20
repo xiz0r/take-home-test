@@ -1,3 +1,4 @@
+using Fundo.Application;
 using Fundo.Infrastructure;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -14,6 +15,7 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
         builder.UseEnvironment("Test");
         builder.ConfigureServices(services =>
         {
+            services.AddApplication();
             services.AddInfrastructure(options =>
                 options.UseInMemoryDatabase(this.databaseName));
         });

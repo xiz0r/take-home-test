@@ -39,4 +39,34 @@ public class LoanCreatorTests
             repo => repo.AddAsync(createdLoan, It.IsAny<CancellationToken>()),
             Times.Once);
     }
+
+    [Fact]
+    public async Task ExecuteAsync_WhenAmountIsZero_Throws()
+    {
+        var request = LoanRequestMother.CreateLoanRequest(0m, "Maria");
+        var loanRepository = new Mock<ILoanRepository>();
+        var useCase = new LoanCreator(loanRepository.Object);
+
+        var action = () => useCase.ExecuteAsync(request, CancellationToken.None);
+
+        await action.Should().ThrowAsync<ArgumentException>();
+        loanRepository.Verify(
+            repo => repo.AddAsync(It.IsAny<Loan>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WhenApplicantNameIsBlank_Throws()
+    {
+        var request = LoanRequestMother.CreateLoanRequest(250m, "   ");
+        var loanRepository = new Mock<ILoanRepository>();
+        var useCase = new LoanCreator(loanRepository.Object);
+
+        var action = () => useCase.ExecuteAsync(request, CancellationToken.None);
+
+        await action.Should().ThrowAsync<ArgumentException>();
+        loanRepository.Verify(
+            repo => repo.AddAsync(It.IsAny<Loan>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
 }
